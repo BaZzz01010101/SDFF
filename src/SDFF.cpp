@@ -106,7 +106,8 @@ int SDFF_Font::load(const char * fileName)
 
 //-------------------------------------------------------------------------------------------------
 
-SDFF_Builder::SDFF_Builder()
+SDFF_Builder::SDFF_Builder() :
+  initialized(false)
 {
   FT_Init_FreeType(&ftLibrary);
 }
@@ -126,10 +127,17 @@ SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, int falloff)
   assert(sdfFontSize > 0);
   assert(falloff >= 0);
 
+  initialized = false;
+
+  if (sourceFontSize <= 0 || sdfFontSize <= 0 || falloff < 0)
+    return SDFF_INVALID_VALUE;
+
   this->sourceFontSize = sourceFontSize;
   this->sdfFontSize = sdfFontSize;
   this->falloff = falloff;
   fonts.clear();
+
+  initialized = true;
 
   return SDFF_OK;
 }
@@ -138,6 +146,11 @@ SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, int falloff)
 
 SDFF_Error SDFF_Builder::addFont(const char * fileName, int faceIndex, SDFF_Font * out_font)
 {
+  assert(initialized);
+
+  if (!initialized)
+    return SDFF_NOT_INITIALIZED;
+
   if (fonts.find(out_font) != fonts.end())
     return SDFF_FONT_ALREADY_EXISTS;
 
@@ -165,6 +178,11 @@ SDFF_Error SDFF_Builder::addFont(const char * fileName, int faceIndex, SDFF_Font
 
 SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
 {
+  assert(initialized);
+
+  if (!initialized)
+    return SDFF_NOT_INITIALIZED;
+
   if (fonts.find(&font) == fonts.end())
     return SDFF_FONT_NOT_EXISTS;
 
@@ -197,31 +215,78 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
 
     int srcWidth = ftFace->glyph->bitmap.width + 2 * srcFalloff;
     int srcHeight = ftFace->glyph->bitmap.rows + 2 * srcFalloff;
-    float scale = (float)sdfFontSize / sourceFontSize;
-    int destWidth = (int)glm::ceil(srcWidth * scale);
-    int destHeight = (int)glm::ceil(srcHeight * scale);
+    float fontScale = (float)sdfFontSize / sourceFontSize;
+    int destWidth = (int)glm::ceil(srcWidth * fontScale);
+    int destHeight = (int)glm::ceil(srcHeight * fontScale);
+    float horzScale = float(destWidth) / srcWidth;
+    float vertScale = float(destHeight) / srcHeight;
+    float horzOpScale = 1.0f / horzScale;
+    float vertOpScale = 1.0f / vertScale;
     destSdf.assign(destWidth * destHeight, 0.0f);
 
     for (int y = 0; y < srcHeight; y++)
     for (int x = 0; x < srcWidth; x++)
     {
       int srcIndex = x + y * srcWidth;
-      assert(srcIndex < srcWidth * srcHeight);
-      int destX = int(x * scale);
-      int destY = int(y * scale);
-      int destIndex = destX + destY * destWidth;
-      assert(destIndex < destWidth * destHeight);
 
-      // if (x < srcWidth)
-      // TODO: scale subpixels
+      float destLeftf = x * horzScale;
+      float destRightf = (x + 1) * horzScale;
+      float destTopf = y * vertScale;
+      float destBottomf = (y + 1) * vertScale;
 
-      destSdf[destIndex] += srcSdf[srcIndex];
+      int destLefti = (int)destLeftf;
+      int destRighti = (int)destRightf;
+      int destTopi = (int)destTopf;
+      int destBottomi = (int)destBottomf;
+
+      if (destLefti == destRighti || destRighti >= destWidth)
+      {
+        if (destTopi == destBottomi || destBottomi >= destHeight)
+        {
+          int destIndex = destLefti + destTopi * destWidth;
+          destSdf[destIndex] += srcSdf[srcIndex];
+        }
+        else
+        {
+          float topChunk = (destBottomi - destTopf) * vertOpScale;
+          float bottomChunk = (destBottomf - destBottomi) * vertOpScale;
+          int destIndex0 = destLefti + destTopi * destWidth;
+          int destIndex1 = destLefti + destBottomi * destWidth;
+          destSdf[destIndex0] += topChunk * srcSdf[srcIndex];
+          destSdf[destIndex1] += bottomChunk * srcSdf[srcIndex];
+        }
+      }
+      else
+      {
+        if (destTopi == destBottomi || destBottomi >= destHeight)
+        {
+          float leftChunk = (destRighti - destLeftf) * horzOpScale;
+          float rightChunk = (destRightf - destRighti) * horzOpScale;
+          int destIndex0 = destLefti + destTopi * destWidth;
+          int destIndex1 = destRighti + destTopi * destWidth;
+          destSdf[destIndex0] += leftChunk * srcSdf[srcIndex];
+          destSdf[destIndex1] += rightChunk * srcSdf[srcIndex];
+        }
+        else
+        {
+          float leftChunk = (destRighti - destLeftf) * horzOpScale;
+          float rightChunk = (destRightf - destRighti) * horzOpScale;
+          float topChunk = (destBottomi - destTopf) * vertOpScale;
+          float bottomChunk = (destBottomf - destBottomi) * vertOpScale;
+          int destIndex00 = destLefti + destTopi * destWidth;
+          int destIndex10 = destRighti + destTopi * destWidth;
+          int destIndex01 = destLefti + destBottomi * destWidth;
+          int destIndex11 = destRighti + destBottomi * destWidth;
+          destSdf[destIndex00] += leftChunk * topChunk * srcSdf[srcIndex];
+          destSdf[destIndex10] += rightChunk * topChunk * srcSdf[srcIndex];
+          destSdf[destIndex01] += leftChunk * bottomChunk * srcSdf[srcIndex];
+          destSdf[destIndex11] += rightChunk * bottomChunk * srcSdf[srcIndex];
+        }
+      }
     }
 
     charBitmap.resize(destWidth, destHeight);
-    float sqScale = scale * scale;
-    //const int midPoint = 128;
-    //const float mul = float(127) / srcFalloff;
+    float sqScale = horzScale * vertScale;
 
     for (int y = 0; y < destHeight; y++)
     for (int x = 0; x < destWidth; x++)
@@ -327,6 +392,11 @@ struct std::hash<Rect>
 
 SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
 {
+  assert(initialized);
+
+  if (!initialized)
+    return SDFF_NOT_INITIALIZED;
+
   typedef std::multimap<int, Rect> CharRectMap;
   typedef std::unordered_set<Rect> FreeRectSet;
   typedef std::vector<FreeRectSet::iterator> EraseVector;

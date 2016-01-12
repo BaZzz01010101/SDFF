@@ -1,6 +1,19 @@
 #pragma once
 
-enum SDFF_Error { SDFF_OK = 0, SDFF_FONT_ALREADY_EXISTS, SDFF_CHAR_ALREADY_EXISTS, SDFF_FONT_NOT_EXISTS, SDFF_FT_NEW_FACE_ERROR, SDFF_FT_SET_CHAR_SIZE_ERROR, SDFF_FT_LOAD_CHAR_ERROR };
+//-------------------------------------------------------------------------------------------------
+
+enum SDFF_Error 
+{ 
+  SDFF_OK = 0, 
+  SDFF_FONT_ALREADY_EXISTS, 
+  SDFF_CHAR_ALREADY_EXISTS, 
+  SDFF_FONT_NOT_EXISTS, 
+  SDFF_FT_NEW_FACE_ERROR, 
+  SDFF_FT_SET_CHAR_SIZE_ERROR, 
+  SDFF_FT_LOAD_CHAR_ERROR, 
+  SDFF_INVALID_VALUE, 
+  SDFF_NOT_INITIALIZED 
+};
 
 //-------------------------------------------------------------------------------------------------
 
@@ -97,6 +110,7 @@ private:
   int sourceFontSize; 
   int sdfFontSize;
   int falloff;
+  bool initialized;
   
   float createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result) const;
   float createDf(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result) const;
