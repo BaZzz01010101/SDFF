@@ -103,6 +103,7 @@
     <ClInclude Include="..\..\src\3rdParty\freetype\tttables.h" />
     <ClInclude Include="..\..\src\3rdParty\freetype\tttags.h" />
     <ClInclude Include="..\..\src\3rdParty\freetype\ttunpat.h" />
+    <ClInclude Include="..\..\src\3rdParty\stb_image.h" />
     <ClInclude Include="..\..\src\3rdParty\stb_image_write.h" />
     <ClInclude Include="..\..\src\Crosy.h" />
     <ClInclude Include="..\..\src\SDFF.h" />
@@ -179,6 +180,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

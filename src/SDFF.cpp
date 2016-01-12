@@ -1,7 +1,108 @@
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "static_headers.h"
 
 #include "SDFF.h"
 #include "Crosy.h"
+
+//-------------------------------------------------------------------------------------------------
+
+int SDFF_Bitmap::savePNG(const char * fileName)
+{
+  return stbi_write_png(fileName, width, height, 1, pixels.data(), 0);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void SDFF_Bitmap::resize(int width, int height)
+{
+  this->width = width;
+  this->height = height;
+  pixels.resize(width * height);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+int SDFF_Font::save(const char * fileName) const
+{
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+
+  writer.StartObject();
+
+  writer.String("Falloff");
+  writer.Int(getFalloff());
+
+  writer.String("Metrics");
+  writer.StartArray();
+
+  for (GlyphMap::const_iterator merticIt = glyphs.begin(); merticIt != glyphs.end(); ++merticIt)
+  {
+    SDFF_Char charCode = merticIt->first;
+    const SDFF_Glyph & charMetrics = merticIt->second;
+    writer.StartObject();
+    writer.String("code");
+    writer.Int(charCode);
+    writer.String("left");
+    writer.Double(charMetrics.left);
+    writer.String("top");
+    writer.Double(charMetrics.top);
+    writer.String("right");
+    writer.Double(charMetrics.right);
+    writer.String("bottom");
+    writer.Double(charMetrics.bottom);
+    writer.String("bearingX");
+    writer.Double(charMetrics.horiBearingX);
+    writer.String("bearingY");
+    writer.Double(charMetrics.horiBearingY);
+    writer.String("advance");
+    writer.Double(charMetrics.horiAdvance);
+    writer.EndObject();
+  }
+
+  writer.EndArray();
+
+  writer.String("Kerning");
+  writer.StartArray();
+
+  for (KerningMap::const_iterator kerningIt = kerning.begin(); kerningIt != kerning.end(); ++kerningIt)
+  {
+    SDFF_Char leftCharCode = kerningIt->first.left;
+    SDFF_Char rightCharCode = kerningIt->first.right;
+    float kerning = kerningIt->second;
+    writer.StartObject();
+    writer.String("leftCode");
+    writer.Int(leftCharCode);
+    writer.String("rightCode");
+    writer.Int(rightCharCode);
+    writer.String("kerning");
+    writer.Double(kerning);
+  }
+  
+  writer.EndArray();
+  
+  writer.EndObject();
+
+  FILE * file = fopen(fileName, "wb+");
+  assert(file);
+
+  if (file)
+  {
+    int success = fwrite(buffer.GetString(), buffer.GetSize(), 1, file);
+    assert(success);
+    fclose(file);
+    return success;
+  }
+
+  return 0;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+int SDFF_Font::load(const char * fileName)
+{
+
+  return 0;
+}
 
 //-------------------------------------------------------------------------------------------------
 
@@ -21,6 +122,10 @@ SDFF_Builder::~SDFF_Builder()
 
 SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, int falloff)
 {
+  assert(sourceFontSize > 0);
+  assert(sdfFontSize > 0);
+  assert(falloff >= 0);
+
   this->sourceFontSize = sourceFontSize;
   this->sdfFontSize = sdfFontSize;
   this->falloff = falloff;
@@ -38,6 +143,7 @@ SDFF_Error SDFF_Builder::addFont(const char * fileName, int faceIndex, SDFF_Font
 
   FontData & fontData = fonts[out_font];
   FT_Face & ftFace = fontData.ftFace;
+  out_font->falloff = falloff;
 
   FT_Error ftError;
   ftError = FT_New_Face(ftLibrary, fileName, faceIndex, &ftFace);
@@ -82,6 +188,7 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
 
     static DistanceFieldVector srcSdf;
     static DistanceFieldVector destSdf;
+    // TODO: reserve for max bitmap size
     //int maxWidth = fontData.width * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM;
     //int maxHeight = fontData.height * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
     //sdf.reserve(maxWidth * maxHeight);
@@ -106,31 +213,24 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
       assert(destIndex < destWidth * destHeight);
 
       // if (x < srcWidth)
-      // TODO subpixels
+      // TODO: scale subpixels
 
       destSdf[destIndex] += srcSdf[srcIndex];
     }
 
-    charBitmap.width = destWidth;
-    charBitmap.height = destHeight;
-    charBitmap.pixels.resize(destWidth * destHeight);
+    charBitmap.resize(destWidth, destHeight);
     float sqScale = scale * scale;
-    const int midPoint = 64;
-    const float mul = float(glm::max(midPoint, 255 - midPoint)) / srcFalloff;
+    //const int midPoint = 128;
+    //const float mul = float(127) / srcFalloff;
 
     for (int y = 0; y < destHeight; y++)
     for (int x = 0; x < destWidth; x++)
     {
       int ind = x + y * destWidth;
-      charBitmap.pixels[ind] = (unsigned char)glm::clamp(midPoint + int(destSdf[ind] * sqScale * mul), 0, 255);
+      charBitmap[ind] = (unsigned char)glm::clamp(128 - int(destSdf[ind] * sqScale * 127 / srcFalloff), 0, 255);
     }
   }
-  else
-  {
-    charBitmap.width = 0;
-    charBitmap.height = 0;
-    charBitmap.pixels.resize(0);
-  }
+  else charBitmap.resize(0, 0);
   
   if (chars.size() > 1)
   {
@@ -529,16 +629,16 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
     }
   }
 
-  bitmap.width = maxRight + 1;
-  bitmap.height = maxBottom + 1;
+  int width = maxRight + 1;
+  int height = maxBottom + 1;
 
   if (powerOfTwo)
   {
-    bitmap.width = (int)glm::pow(2.0f, glm::ceil(glm::log2((float)bitmap.width)));
-    bitmap.height = (int)glm::pow(2.0f, glm::ceil(glm::log2((float)bitmap.height)));
+    width = (int)glm::pow(2.0f, glm::ceil(glm::log2((float)width)));
+    height = (int)glm::pow(2.0f, glm::ceil(glm::log2((float)height)));
   }
   
-  bitmap.pixels.resize(bitmap.width * bitmap.height);
+  bitmap.resize(width, height);
 
   for (CharRectMap::iterator charRectIt = charRects.begin(); charRectIt != charRects.end(); ++charRectIt)
   {
@@ -551,6 +651,14 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
 
       if (charIt != fontIt->second.chars.end())
       {
+        SDFF_Font * font = fontIt->first;
+        SDFF_Char charCode = charIt->first;
+        SDFF_Glyph & glyph = font->glyphs[charCode];
+        glyph.left = float(charRect.left) / width;
+        glyph.right = float(charRect.right() + 1) / width;
+        glyph.top = float(charRect.top) / height;
+        glyph.bottom = float(charRect.bottom() + 1) / height;
+
         SDFF_Bitmap & charBitmap = charIt->second;
         copyBitmap(charBitmap, bitmap, charRect.left, charRect.top);
       }
@@ -562,7 +670,7 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
 
 //-------------------------------------------------------------------------------------------------
 
-void SDFF_Builder::copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destBitmap, int xPos, int yPos)
+void SDFF_Builder::copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destBitmap, int xPos, int yPos) const
 {
   assert(xPos >= 0);
   assert(yPos >= 0);
@@ -576,7 +684,7 @@ void SDFF_Builder::copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destB
   {
     for (int x = 0; x < srcBitmap.width; x++)
     {
-      destBitmap.pixels[destIndex] = destBitmap.pixels[destIndex] ? destBitmap.pixels[destIndex] : srcBitmap.pixels[srcIndex];
+      destBitmap[destIndex] = destBitmap[destIndex] ? destBitmap[destIndex] : srcBitmap[srcIndex];
       srcIndex++;
       destIndex++;
     }
@@ -587,7 +695,7 @@ void SDFF_Builder::copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destB
 
 //-------------------------------------------------------------------------------------------------
 
-float SDFF_Builder::createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result)
+float SDFF_Builder::createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result) const
 {
   float maxDist = createDf(ftBitmap, falloff, false, result);
 
@@ -609,7 +717,7 @@ float SDFF_Builder::createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceF
 //  University of Groningen
 //  http://www.rug.nl/research/portal/publications/a-general-algorithm-for-computing-distance-transforms-in-linear-time(15dd2ec9-d221-45da-b2b0-1164978717dc).html
 
-float SDFF_Builder::createDf(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result)
+float SDFF_Builder::createDf(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result) const
 {
   assert(ftBitmap.width > 0);
   assert(ftBitmap.rows > 0);

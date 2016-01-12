@@ -1,16 +1,25 @@
 #pragma once
 
-typedef unsigned int SDFF_Char;
-typedef std::vector<unsigned char> SDFF_PixelVector;
+enum SDFF_Error { SDFF_OK = 0, SDFF_FONT_ALREADY_EXISTS, SDFF_CHAR_ALREADY_EXISTS, SDFF_FONT_NOT_EXISTS, SDFF_FT_NEW_FACE_ERROR, SDFF_FT_SET_CHAR_SIZE_ERROR, SDFF_FT_LOAD_CHAR_ERROR };
 
-struct SDFF_Bitmap
+//-------------------------------------------------------------------------------------------------
+
+typedef unsigned int SDFF_Char;
+
+class SDFF_Bitmap
 {
+public:
   int width;
   int height;
+  void resize(int width, int height);
+  int savePNG(const char * fileName);
+  unsigned char * data() { return pixels.data(); }
+  const unsigned char & operator[](int ind) const { return pixels[ind]; }
+  unsigned char & operator[](int ind) { return pixels[ind]; }
+private:
+  typedef std::vector<unsigned char> SDFF_PixelVector;
   SDFF_PixelVector pixels;
 };
-
-enum SDFF_Error { SDFF_OK = 0, SDFF_FONT_ALREADY_EXISTS, SDFF_CHAR_ALREADY_EXISTS, SDFF_FONT_NOT_EXISTS, SDFF_FT_NEW_FACE_ERROR, SDFF_FT_SET_CHAR_SIZE_ERROR, SDFF_FT_LOAD_CHAR_ERROR };
 
 //-------------------------------------------------------------------------------------------------
 
@@ -34,9 +43,11 @@ class SDFF_Font
 
 public:
 
-  const SDFF_Glyph & getGlyph(SDFF_Char charcode);
-  float getKerning(SDFF_Char leftChar, SDFF_Char rightChar);
-  int getFalloff() { return falloff; }
+  const SDFF_Glyph * getGlyph(SDFF_Char charcode) const;
+  float getKerning(SDFF_Char leftChar, SDFF_Char rightChar) const;
+  int getFalloff() const { return falloff; }
+  int save(const char * fileName) const;
+  int load(const char * fileName);
 
 private:
   struct CharPair
@@ -47,8 +58,10 @@ private:
   };
 
   int falloff;
-  std::map<SDFF_Char, SDFF_Glyph> glyphs;
-  std::map<CharPair, float> kerning;
+  typedef std::map<SDFF_Char, SDFF_Glyph> GlyphMap;
+  typedef std::map<CharPair, float> KerningMap;
+  GlyphMap glyphs;
+  KerningMap kerning;
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -85,8 +98,7 @@ private:
   int sdfFontSize;
   int falloff;
   
-  float createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result);
-  float createDf(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result);
-  float createDf1(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result);
-  void copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destBitmap, int posX, int posY);
+  float createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result) const;
+  float createDf(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result) const;
+  void copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destBitmap, int posX, int posY) const;
 };

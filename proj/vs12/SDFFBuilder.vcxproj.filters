@@ -314,5 +314,8 @@
     <ClInclude Include="..\..\src\static_headers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\3rdParty\stb_image.h">
+      <Filter>Header Files\3rd party</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
