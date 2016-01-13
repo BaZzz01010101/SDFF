@@ -43,9 +43,9 @@ public:
   float top;
   float right;
   float bottom;
-  float horiBearingX;
-  float horiBearingY;
-  float horiAdvance;
+  float bearingX;
+  float bearingY;
+  float advance;
 };
 
 //-------------------------------------------------------------------------------------------------
