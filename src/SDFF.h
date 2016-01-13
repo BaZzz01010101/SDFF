@@ -75,6 +75,10 @@ private:
   typedef std::map<CharPair, float> KerningMap;
   GlyphMap glyphs;
   KerningMap kerning;
+
+  const rapidjson::Value & getValue(const rapidjson::Value & source, const char * name) const;
+  void getValue(const rapidjson::Value & source, const char * name, float * value) const;
+  void getValue(const rapidjson::Value & source, const char * name, int * value) const;
 };
 
 //-------------------------------------------------------------------------------------------------

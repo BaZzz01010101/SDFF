@@ -1,8 +1,7 @@
 #pragma once
 
-#pragma warning (disable : 4005)
-
 #pragma warning(push, 3)
+#pragma warning (disable : 4005)
 
 #include <string>
 #include <vector>
@@ -14,6 +13,7 @@
 #include FT_FREETYPE_H
 #include "rapidjson/document.h"
 #include "rapidjson/filewritestream.h"
+#include "rapidjson/filereadstream.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "stb_image_write.h"

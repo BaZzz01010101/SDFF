@@ -100,8 +100,88 @@ int SDFF_Font::save(const char * fileName) const
 
 int SDFF_Font::load(const char * fileName)
 {
+  rapidjson::Document doc;
+  FILE * file = fopen(fileName, "rb");
+  assert(file);
+  const int bufSize = 16384;
+  char buf[bufSize];
+  rapidjson::FileReadStream frstream(file, buf, bufSize);
+  doc.ParseStream<rapidjson::FileReadStream>(frstream);
+  fclose(file);
+
+  getValue(doc, "Falloff", &falloff);
+  const rapidjson::Value & metricsArray = getValue(doc, "Metrics");
+  assert(metricsArray.IsArray());
+
+  if (metricsArray.IsArray())
+  {
+    for (rapidjson::Value::ConstValueIterator metricsIt = metricsArray.Begin();
+      metricsIt != metricsArray.End();
+      ++metricsIt)
+    {
+      SDFF_Char charCode;
+      charCode = getValue(*metricsIt, "code").GetInt();
+      SDFF_Glyph & metrics = glyphs[charCode];
+      getValue(*metricsIt, "left", &metrics.left);
+      getValue(*metricsIt, "right", &metrics.right);
+      getValue(*metricsIt, "top", &metrics.top);
+      getValue(*metricsIt, "bottom", &metrics.bottom);
+      getValue(*metricsIt, "advance", &metrics.horiAdvance);
+      getValue(*metricsIt, "bearingX", &metrics.horiBearingX);
+      getValue(*metricsIt, "bearingY", &metrics.horiBearingY);
+    }
+  }
+
+  const rapidjson::Value & kerningArray = getValue(doc, "Kerning");
+  assert(kerningArray.IsArray());
+
+  if (kerningArray.IsArray())
+  {
+    for (rapidjson::Value::ConstValueIterator kerningIt = kerningArray.Begin();
+      kerningIt != kerningArray.End();
+      ++kerningIt)
+    {
+      CharPair charPair;
+      charPair.left = getValue(*kerningIt, "leftCode").GetInt();
+      charPair.right = getValue(*kerningIt, "rightCode").GetInt();
+      kerning[charPair] = (float)getValue(*kerningIt, "kerning").GetDouble();
+    }
+  }
 
   return 0;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+const rapidjson::Value & SDFF_Font::getValue(const rapidjson::Value & source, const char * name) const
+{
+  assert(source.HasMember(name));
+  static rapidjson::Value emptyValue;
+
+  if (source.HasMember(name))
+    return source[name];
+  else
+    return emptyValue;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void SDFF_Font::getValue(const rapidjson::Value & source, const char * name, float * value) const
+{
+  assert(source.HasMember(name));
+
+  if (source.HasMember(name))
+    *value = float(source[name].GetDouble());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void SDFF_Font::getValue(const rapidjson::Value & source, const char * name, int * value) const
+{
+  assert(source.HasMember(name));
+
+  if (source.HasMember(name))
+    *value = source[name].GetInt();
 }
 
 //-------------------------------------------------------------------------------------------------
