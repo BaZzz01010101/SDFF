@@ -46,6 +46,8 @@ public:
   float bearingX;
   float bearingY;
   float advance;
+  float width;
+  float height;
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ class SDFF_Font
 
 public:
 
-  const SDFF_Glyph * getGlyph(SDFF_Char charcode) const;
+  const SDFF_Glyph * getGlyph(SDFF_Char charCode) const;
   float getKerning(SDFF_Char leftChar, SDFF_Char rightChar) const;
   int getFalloff() const { return falloff; }
   int save(const char * fileName) const;

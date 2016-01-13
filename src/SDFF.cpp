@@ -1,4 +1,3 @@
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "static_headers.h"
 
 #include "SDFF.h"
@@ -18,6 +17,31 @@ void SDFF_Bitmap::resize(int width, int height)
   this->width = width;
   this->height = height;
   pixels.resize(width * height);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+const SDFF_Glyph * SDFF_Font::getGlyph(SDFF_Char charCode) const
+{
+  GlyphMap::const_iterator glyphIt = glyphs.find(charCode);
+
+  if (glyphIt != glyphs.end())
+    return &glyphIt->second;
+  else
+    return NULL;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+float SDFF_Font::getKerning(SDFF_Char leftChar, SDFF_Char rightChar) const
+{
+
+  KerningMap::const_iterator kerningIt = kerning.find({ leftChar, rightChar });
+
+  if (kerningIt != kerning.end())
+    return kerningIt->second;
+  else
+    return NULL;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -56,6 +80,10 @@ int SDFF_Font::save(const char * fileName) const
     writer.Double(glyph.bearingY);
     writer.String("advance");
     writer.Double(glyph.advance);
+    writer.String("width");
+    writer.Double(glyph.width);
+    writer.String("height");
+    writer.Double(glyph.height);
     writer.EndObject();
   }
 
@@ -125,9 +153,11 @@ int SDFF_Font::load(const char * fileName)
       getValue(*glyphIt, "right", &glyph.right);
       getValue(*glyphIt, "top", &glyph.top);
       getValue(*glyphIt, "bottom", &glyph.bottom);
-      getValue(*glyphIt, "advance", &glyph.advance);
       getValue(*glyphIt, "bearingX", &glyph.bearingX);
       getValue(*glyphIt, "bearingY", &glyph.bearingY);
+      getValue(*glyphIt, "advance", &glyph.advance);
+      getValue(*glyphIt, "width", &glyph.width);
+      getValue(*glyphIt, "height", &glyph.height);
     }
   }
 
@@ -410,6 +440,8 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
   glyph.bearingX = float(ftFace->glyph->metrics.horiBearingX) / 64 / sourceFontSize;
   glyph.bearingY = float(ftFace->glyph->metrics.horiBearingY) / 64 / sourceFontSize;
   glyph.advance = float(ftFace->glyph->metrics.horiAdvance) / 64 / sourceFontSize;
+  glyph.width = float(ftFace->glyph->metrics.width) / 64 / sourceFontSize;
+  glyph.height = float(ftFace->glyph->metrics.height) / 64 / sourceFontSize;
 
   return SDFF_OK;
 }

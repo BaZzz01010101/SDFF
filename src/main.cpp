@@ -1,3 +1,4 @@
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "static_headers.h"
 
 #include "SDFF.h"
