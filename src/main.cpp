@@ -9,7 +9,7 @@ int main(int argc, char * argv[])
   SDFF_Builder sdff;
   int renderFontSize = 2048;
   int sdffFontSize = 64;
-  int sdffFontFalloff = 8;
+  float sdffFontFalloff = 0.125f;
   std::string sourceFontFileName = "Montserrat-Bold.otf";
   std::string destFileName = "font";
 

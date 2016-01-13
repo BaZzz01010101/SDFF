@@ -1,5 +1,7 @@
 {
-    "Falloff": 8,
+    "Falloff": 0.125,
+    "MaxBearingY": 0.69775390625,
+    "MaxHeight": 0.876953125,
     "Glyphs": [
         {
             "code": 32,

@@ -21,6 +21,16 @@ void SDFF_Bitmap::resize(int width, int height)
 
 //-------------------------------------------------------------------------------------------------
 
+SDFF_Font::SDFF_Font() :
+  falloff(0.0f),
+  maxBearingY(0.0f),
+  maxHeight(0.0f)
+{
+
+}
+
+//-------------------------------------------------------------------------------------------------
+
 const SDFF_Glyph * SDFF_Font::getGlyph(SDFF_Char charCode) const
 {
   GlyphMap::const_iterator glyphIt = glyphs.find(charCode);
@@ -54,7 +64,11 @@ int SDFF_Font::save(const char * fileName) const
   writer.StartObject();
 
   writer.String("Falloff");
-  writer.Int(getFalloff());
+  writer.Double(falloff);
+  writer.String("MaxBearingY");
+  writer.Double(maxBearingY);
+  writer.String("MaxHeight");
+  writer.Double(maxHeight);
 
   writer.String("Glyphs");
   writer.StartArray();
@@ -137,6 +151,8 @@ int SDFF_Font::load(const char * fileName)
   fclose(file);
 
   getValue(doc, "Falloff", &falloff);
+  getValue(doc, "MaxBearingY", &maxBearingY);
+  getValue(doc, "MaxHeight", &maxHeight);
   const rapidjson::Value & glyphArray = getValue(doc, "Glyphs");
   assert(glyphArray.IsArray());
 
@@ -230,7 +246,7 @@ SDFF_Builder::~SDFF_Builder()
 
 //-------------------------------------------------------------------------------------------------
 
-SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, int falloff)
+SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, float falloff)
 {
   assert(sourceFontSize > 0);
   assert(sdfFontSize > 0);
@@ -319,7 +335,7 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
     //int maxWidth = fontData.width * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM;
     //int maxHeight = fontData.height * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
     //sdf.reserve(maxWidth * maxHeight);
-    int srcFalloff = falloff * sourceFontSize / sdfFontSize;
+    int srcFalloff = int(falloff * sourceFontSize);
     createSdf(ftFace->glyph->bitmap, srcFalloff, srcSdf);
 
     int srcWidth = ftFace->glyph->bitmap.width + 2 * srcFalloff;
@@ -442,6 +458,8 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
   glyph.advance = float(ftFace->glyph->metrics.horiAdvance) / 64 / sourceFontSize;
   glyph.width = float(ftFace->glyph->metrics.width) / 64 / sourceFontSize;
   glyph.height = float(ftFace->glyph->metrics.height) / 64 / sourceFontSize;
+  font.maxBearingY = glm::max(font.maxBearingY, glyph.bearingY);
+  font.maxHeight = glm::max(font.maxHeight, glyph.height);
 
   return SDFF_OK;
 }

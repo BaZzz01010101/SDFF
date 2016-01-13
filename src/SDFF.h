@@ -57,10 +57,13 @@ class SDFF_Font
   friend class SDFF_Builder;
 
 public:
+  float falloff;
+  float maxBearingY;
+  float maxHeight;
 
+  SDFF_Font();
   const SDFF_Glyph * getGlyph(SDFF_Char charCode) const;
   float getKerning(SDFF_Char leftChar, SDFF_Char rightChar) const;
-  int getFalloff() const { return falloff; }
   int save(const char * fileName) const;
   int load(const char * fileName);
 
@@ -72,7 +75,6 @@ private:
     bool operator <(const CharPair & val) const { return val.left < left || (val.left == left && val.right < right); }
   };
 
-  int falloff;
   typedef std::map<SDFF_Char, SDFF_Glyph> GlyphMap;
   typedef std::map<CharPair, float> KerningMap;
   GlyphMap glyphs;
@@ -91,7 +93,7 @@ public:
   SDFF_Builder();
   ~SDFF_Builder();
 
-  SDFF_Error init(int sourceFontSize, int sdfFontSize, int falloff);
+  SDFF_Error init(int sourceFontSize, int sdfFontSize, float falloff);
   SDFF_Error addFont(const char * fileName, int faceIndex, SDFF_Font * out_font);
   SDFF_Error addChar(SDFF_Font & font, SDFF_Char charCode);
   SDFF_Error addChars(SDFF_Font & font, SDFF_Char firstCharCode, SDFF_Char lastCharCode);
@@ -115,7 +117,7 @@ private:
   FontMap fonts;
   int sourceFontSize; 
   int sdfFontSize;
-  int falloff;
+  float falloff;
   bool initialized;
   
   float createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result) const;
