@@ -833,8 +833,8 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
 
   if (powerOfTwo)
   {
-    width = (int)glm::pow(2.0f, glm::ceil(glm::log2((float)width)));
-    height = (int)glm::pow(2.0f, glm::ceil(glm::log2((float)height)));
+    width = firstPowerOfTwoGreaterThen(width);
+    height = firstPowerOfTwoGreaterThen(height);
   }
   
   bitmap.resize(width, height);
@@ -865,6 +865,21 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
   }
 
   return SDFF_OK;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+unsigned int SDFF_Builder::firstPowerOfTwoGreaterThen(unsigned int value)
+{
+  value--;
+  value |= value >> 1;
+  value |= value >> 2;
+  value |= value >> 4;
+  value |= value >> 8;
+  value |= value >> 16;
+  value++;
+
+  return value;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -927,19 +942,21 @@ float SDFF_Builder::createDf(const FT_Bitmap & ftBitmap, int falloff, bool inver
   int pitch = ftBitmap.pitch;
   result.resize(width * height);
 
-  struct EDT_f
+  struct
   {
-    int result;
-    EDT_f(int x, int i, int g_i) : result((x - i) * (x - i) + g_i * g_i) {}
-    operator int() { return result; }
-  };
+    int operator()(int x, int i, int g_i)
+    {
+      return (x - i) * (x - i) + g_i * g_i;
+    }
+  } edt;
 
-  struct EDT_Sep
+  struct
   {
-    int result;
-    EDT_Sep(int i, int u, int g_i, int g_u) : result((u*u - i*i + g_u*g_u - g_i*g_i) / (2 * (u - i))) {}
-    operator int() { return result; }
-  };
+    int operator()(int i, int u, int g_i, int g_u)
+    {
+      return (u * u - i * i + g_u * g_u - g_i * g_i) / (2 * (u - i));
+    }
+  } sep;
 
   // First stage
   const int inf = width + height;
@@ -1006,7 +1023,7 @@ float SDFF_Builder::createDf(const FT_Bitmap & ftBitmap, int falloff, bool inver
       // Scan 3
     for (int x = 1; x < width; x++)	
     {
-      while (q >= 0 && EDT_f(t[q], s[q], g[s[q] + y * width]) > EDT_f(t[q], x, g[x + y * width]))
+      while (q >= 0 && edt(t[q], s[q], g[s[q] + y * width]) > edt(t[q], x, g[x + y * width]))
         q--;
 
       if (q < 0)	
@@ -1016,7 +1033,7 @@ float SDFF_Builder::createDf(const FT_Bitmap & ftBitmap, int falloff, bool inver
       }
       else	
       {
-        w = 1 + EDT_Sep(s[q], x, g[s[q] + y * width], g[x + y * width]);
+        w = 1 + sep(s[q], x, g[s[q] + y * width], g[x + y * width]);
 
         if (w < width)	
         {
@@ -1030,7 +1047,7 @@ float SDFF_Builder::createDf(const FT_Bitmap & ftBitmap, int falloff, bool inver
     // Scan 4
     for (int x = width - 1; x >= 0; x--)	
     {
-      float distance = std::sqrtf((float)EDT_f(x, s[q], g[s[q] + y * width]));
+      float distance = std::sqrtf((float)edt(x, s[q], g[s[q] + y * width]));
       result[x + y * width] = distance;
 
       if (distance > maxDistance)
