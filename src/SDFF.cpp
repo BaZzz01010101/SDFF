@@ -261,6 +261,8 @@ SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, float falloff
   this->sdfFontSize = sdfFontSize;
   this->falloff = falloff;
   fonts.clear();
+  maxSrcDfSize = 0;
+  maxDstDfSize = 0;
 
   initialized = true;
 
@@ -295,6 +297,13 @@ SDFF_Error SDFF_Builder::addFont(const char * fileName, int faceIndex, SDFF_Font
 
   if (ftError)
     return SDFF_FT_SET_CHAR_SIZE_ERROR;
+
+  static int srcDfSize = sourceFontSize * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM *
+                         sourceFontSize * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
+  static int dstDfSize = sdfFontSize * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM *
+                         sdfFontSize * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
+  maxSrcDfSize = glm::max(maxSrcDfSize, srcDfSize);
+  maxDstDfSize = glm::max(maxDstDfSize, dstDfSize);
 
   return SDFF_OK;
 }
@@ -331,10 +340,8 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
 
     static DistanceFieldVector srcSdf;
     static DistanceFieldVector destSdf;
-    // TODO: reserve for max bitmap size
-    //int maxWidth = fontData.width * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM;
-    //int maxHeight = fontData.height * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
-    //sdf.reserve(maxWidth * maxHeight);
+    srcSdf.reserve(maxSrcDfSize);
+    destSdf.reserve(maxDstDfSize);
     int srcFalloff = int(falloff * sourceFontSize);
     createSdf(ftFace->glyph->bitmap, srcFalloff, srcSdf);
 

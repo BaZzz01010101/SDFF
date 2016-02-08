@@ -119,7 +119,9 @@ private:
   int sdfFontSize;
   float falloff;
   bool initialized;
-  
+  int maxSrcDfSize;
+  int maxDstDfSize;
+
   unsigned int firstPowerOfTwoGreaterThen(unsigned int value);
   float createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result) const;
   float createDf(const FT_Bitmap & ftBitmap, int falloff, bool invert, DistanceFieldVector & result) const;
