@@ -17,6 +17,5 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "stb_image_write.h"
-#include "stb_image.h"
 
 #pragma warning(pop)

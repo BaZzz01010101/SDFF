@@ -13,7 +13,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\Crosy.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
-    <ClCompile Include="..\..\src\SDFF.cpp" />
+    <ClCompile Include="..\..\src\sdff_bitmap.cpp" />
+    <ClCompile Include="..\..\src\sdff_builder.cpp" />
+    <ClCompile Include="..\..\src\sdff_font.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\3rdParty\freetype\config\ftconfig.h" />
@@ -106,7 +108,9 @@
     <ClInclude Include="..\..\src\3rdParty\stb_image.h" />
     <ClInclude Include="..\..\src\3rdParty\stb_image_write.h" />
     <ClInclude Include="..\..\src\Crosy.h" />
-    <ClInclude Include="..\..\src\SDFF.h" />
+    <ClInclude Include="..\..\src\sdff_bitmap.h" />
+    <ClInclude Include="..\..\src\sdff_builder.h" />
+    <ClInclude Include="..\..\src\sdff_font.h" />
     <ClInclude Include="..\..\src\static_headers.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

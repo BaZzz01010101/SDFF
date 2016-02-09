@@ -1,7 +1,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "static_headers.h"
 
-#include "SDFF.h"
+#include "sdff_builder.h"
 #include "Crosy.h"
 
 int main(int argc, char * argv[])

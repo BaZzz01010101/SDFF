@@ -30,13 +30,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\Crosy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\SDFF.cpp">
+    <ClCompile Include="..\..\src\sdff_bitmap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\sdff_font.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\sdff_builder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Crosy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -302,20 +308,26 @@
     <ClInclude Include="..\..\src\3rdParty\freetype\internal\services\svwinfnt.h">
       <Filter>Header Files\3rd party\freetype\internal\services</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Crosy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\3rdParty\stb_image_write.h">
       <Filter>Header Files\3rd party</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\SDFF.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\static_headers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\3rdParty\stb_image.h">
       <Filter>Header Files\3rd party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sdff_bitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sdff_font.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sdff_builder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Crosy.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
