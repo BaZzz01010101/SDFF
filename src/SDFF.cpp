@@ -3,58 +3,52 @@
 #include "SDFF.h"
 #include "Crosy.h"
 
-//-------------------------------------------------------------------------------------------------
 
 int SDFF_Bitmap::savePNG(const char * fileName)
 {
-  return stbi_write_png(fileName, width, height, 1, pixels.data(), 0);
+  return stbi_write_png(fileName, width_, height_, 1, pixels_.data(), 0);
 }
 
-//-------------------------------------------------------------------------------------------------
 
 void SDFF_Bitmap::resize(int width, int height)
 {
-  this->width = width;
-  this->height = height;
-  pixels.resize(width * height);
+  width_ = width;
+  height_ = height;
+  pixels_.resize(width * height);
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Font::SDFF_Font() :
-  falloff(0.0f),
-  maxBearingY(0.0f),
-  maxHeight(0.0f)
+  falloff_(0.0f),
+  maxBearingY_(0.0f),
+  maxHeight_(0.0f)
 {
 
 }
 
-//-------------------------------------------------------------------------------------------------
 
 const SDFF_Glyph * SDFF_Font::getGlyph(SDFF_Char charCode) const
 {
-  GlyphMap::const_iterator glyphIt = glyphs.find(charCode);
+  GlyphMap::const_iterator glyphIt = glyphs_.find(charCode);
 
-  if (glyphIt != glyphs.end())
+  if (glyphIt != glyphs_.end())
     return &glyphIt->second;
   else
     return NULL;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 float SDFF_Font::getKerning(SDFF_Char leftChar, SDFF_Char rightChar) const
 {
 
-  KerningMap::const_iterator kerningIt = kerning.find({ leftChar, rightChar });
+  KerningMap::const_iterator kerningIt = kerning_.find({ leftChar, rightChar });
 
-  if (kerningIt != kerning.end())
+  if (kerningIt != kerning_.end())
     return kerningIt->second;
   else
     return NULL;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 int SDFF_Font::save(const char * fileName) const
 {
@@ -64,16 +58,16 @@ int SDFF_Font::save(const char * fileName) const
   writer.StartObject();
 
   writer.String("Falloff");
-  writer.Double(falloff);
+  writer.Double(falloff_);
   writer.String("MaxBearingY");
-  writer.Double(maxBearingY);
+  writer.Double(maxBearingY_);
   writer.String("MaxHeight");
-  writer.Double(maxHeight);
+  writer.Double(maxHeight_);
 
   writer.String("Glyphs");
   writer.StartArray();
 
-  for (GlyphMap::const_iterator glyphIt = glyphs.begin(); glyphIt != glyphs.end(); ++glyphIt)
+  for (GlyphMap::const_iterator glyphIt = glyphs_.begin(); glyphIt != glyphs_.end(); ++glyphIt)
   {
     SDFF_Char charCode = glyphIt->first;
     const SDFF_Glyph & glyph = glyphIt->second;
@@ -106,7 +100,7 @@ int SDFF_Font::save(const char * fileName) const
   writer.String("Kerning");
   writer.StartArray();
 
-  for (KerningMap::const_iterator kerningIt = kerning.begin(); kerningIt != kerning.end(); ++kerningIt)
+  for (KerningMap::const_iterator kerningIt = kerning_.begin(); kerningIt != kerning_.end(); ++kerningIt)
   {
     SDFF_Char leftCharCode = kerningIt->first.left;
     SDFF_Char rightCharCode = kerningIt->first.right;
@@ -137,7 +131,6 @@ int SDFF_Font::save(const char * fileName) const
   return 0;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 int SDFF_Font::load(const char * fileName)
 {
@@ -150,10 +143,10 @@ int SDFF_Font::load(const char * fileName)
   doc.ParseStream<rapidjson::FileReadStream>(frstream);
   fclose(file);
 
-  getValue(doc, "Falloff", &falloff);
-  getValue(doc, "MaxBearingY", &maxBearingY);
-  getValue(doc, "MaxHeight", &maxHeight);
-  const rapidjson::Value & glyphArray = getValue(doc, "Glyphs");
+  getJsonValue(doc, "Falloff", &falloff_);
+  getJsonValue(doc, "MaxBearingY", &maxBearingY_);
+  getJsonValue(doc, "MaxHeight", &maxHeight_);
+  const rapidjson::Value & glyphArray = getJsonValue(doc, "Glyphs");
   assert(glyphArray.IsArray());
 
   if (glyphArray.IsArray())
@@ -163,21 +156,21 @@ int SDFF_Font::load(const char * fileName)
       ++glyphIt)
     {
       SDFF_Char charCode;
-      charCode = getValue(*glyphIt, "code").GetInt();
-      SDFF_Glyph & glyph = glyphs[charCode];
-      getValue(*glyphIt, "left", &glyph.left);
-      getValue(*glyphIt, "right", &glyph.right);
-      getValue(*glyphIt, "top", &glyph.top);
-      getValue(*glyphIt, "bottom", &glyph.bottom);
-      getValue(*glyphIt, "bearingX", &glyph.bearingX);
-      getValue(*glyphIt, "bearingY", &glyph.bearingY);
-      getValue(*glyphIt, "advance", &glyph.advance);
-      getValue(*glyphIt, "width", &glyph.width);
-      getValue(*glyphIt, "height", &glyph.height);
+      charCode = getJsonValue(*glyphIt, "code").GetInt();
+      SDFF_Glyph & glyph = glyphs_[charCode];
+      getJsonValue(*glyphIt, "left", &glyph.left);
+      getJsonValue(*glyphIt, "right", &glyph.right);
+      getJsonValue(*glyphIt, "top", &glyph.top);
+      getJsonValue(*glyphIt, "bottom", &glyph.bottom);
+      getJsonValue(*glyphIt, "bearingX", &glyph.bearingX);
+      getJsonValue(*glyphIt, "bearingY", &glyph.bearingY);
+      getJsonValue(*glyphIt, "advance", &glyph.advance);
+      getJsonValue(*glyphIt, "width", &glyph.width);
+      getJsonValue(*glyphIt, "height", &glyph.height);
     }
   }
 
-  const rapidjson::Value & kerningArray = getValue(doc, "Kerning");
+  const rapidjson::Value & kerningArray = getJsonValue(doc, "Kerning");
   assert(kerningArray.IsArray());
 
   if (kerningArray.IsArray())
@@ -187,18 +180,17 @@ int SDFF_Font::load(const char * fileName)
       ++kerningIt)
     {
       CharPair charPair;
-      charPair.left = getValue(*kerningIt, "leftCode").GetInt();
-      charPair.right = getValue(*kerningIt, "rightCode").GetInt();
-      kerning[charPair] = (float)getValue(*kerningIt, "kerning").GetDouble();
+      charPair.left = getJsonValue(*kerningIt, "leftCode").GetInt();
+      charPair.right = getJsonValue(*kerningIt, "rightCode").GetInt();
+      kerning_[charPair] = (float)getJsonValue(*kerningIt, "kerning").GetDouble();
     }
   }
 
   return 0;
 }
 
-//-------------------------------------------------------------------------------------------------
 
-const rapidjson::Value & SDFF_Font::getValue(const rapidjson::Value & source, const char * name) const
+const rapidjson::Value & SDFF_Font::getJsonValue(const rapidjson::Value & source, const char * name) const
 {
   assert(source.HasMember(name));
   static rapidjson::Value emptyValue;
@@ -209,9 +201,8 @@ const rapidjson::Value & SDFF_Font::getValue(const rapidjson::Value & source, co
     return emptyValue;
 }
 
-//-------------------------------------------------------------------------------------------------
 
-void SDFF_Font::getValue(const rapidjson::Value & source, const char * name, float * value) const
+void SDFF_Font::getJsonValue(const rapidjson::Value & source, const char * name, float * value) const
 {
   assert(source.HasMember(name));
 
@@ -219,9 +210,8 @@ void SDFF_Font::getValue(const rapidjson::Value & source, const char * name, flo
     *value = float(source[name].GetDouble());
 }
 
-//-------------------------------------------------------------------------------------------------
 
-void SDFF_Font::getValue(const rapidjson::Value & source, const char * name, int * value) const
+void SDFF_Font::getJsonValue(const rapidjson::Value & source, const char * name, int * value) const
 {
   assert(source.HasMember(name));
 
@@ -229,22 +219,19 @@ void SDFF_Font::getValue(const rapidjson::Value & source, const char * name, int
     *value = source[name].GetInt();
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Builder::SDFF_Builder() :
-  initialized(false)
+  initialized_(false)
 {
-  FT_Init_FreeType(&ftLibrary);
+  FT_Init_FreeType(&ftLibrary_);
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Builder::~SDFF_Builder()
 {
-  FT_Done_FreeType(ftLibrary);
+  FT_Done_FreeType(ftLibrary_);
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, float falloff)
 {
@@ -252,75 +239,72 @@ SDFF_Error SDFF_Builder::init(int sourceFontSize, int sdfFontSize, float falloff
   assert(sdfFontSize > 0);
   assert(falloff >= 0);
 
-  initialized = false;
+  initialized_ = false;
 
   if (sourceFontSize <= 0 || sdfFontSize <= 0 || falloff < 0)
     return SDFF_INVALID_VALUE;
 
-  this->sourceFontSize = sourceFontSize;
-  this->sdfFontSize = sdfFontSize;
-  this->falloff = falloff;
-  fonts.clear();
-  maxSrcDfSize = 0;
-  maxDstDfSize = 0;
-
-  initialized = true;
+  sourceFontSize_ = sourceFontSize;
+  sdfFontSize_ = sdfFontSize;
+  falloff_ = falloff;
+  fonts_.clear();
+  maxSrcDfSize_ = 0;
+  maxDstDfSize_ = 0;
+  initialized_ = true;
 
   return SDFF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Error SDFF_Builder::addFont(const char * fileName, int faceIndex, SDFF_Font * out_font)
 {
-  assert(initialized);
+  assert(initialized_);
 
-  if (!initialized)
+  if (!initialized_)
     return SDFF_NOT_INITIALIZED;
 
-  if (fonts.find(out_font) != fonts.end())
+  if (fonts_.find(out_font) != fonts_.end())
     return SDFF_FONT_ALREADY_EXISTS;
 
-  FontData & fontData = fonts[out_font];
+  FontData & fontData = fonts_[out_font];
   FT_Face & ftFace = fontData.ftFace;
-  out_font->falloff = falloff;
+  out_font->falloff_ = falloff_;
 
   FT_Error ftError;
-  ftError = FT_New_Face(ftLibrary, fileName, faceIndex, &ftFace);
+  ftError = FT_New_Face(ftLibrary_, fileName, faceIndex, &ftFace);
   assert(!ftError);
 
   if (ftError)
     return SDFF_FT_NEW_FACE_ERROR;
 
-  ftError = FT_Set_Char_Size(ftFace, sourceFontSize * 64, sourceFontSize * 64, 64, 64);
+  ftError = FT_Set_Char_Size(ftFace, sourceFontSize_ * 64, sourceFontSize_ * 64, 64, 64);
   assert(!ftError);
 
   if (ftError)
     return SDFF_FT_SET_CHAR_SIZE_ERROR;
 
-  static int srcDfSize = sourceFontSize * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM *
-                         sourceFontSize * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
-  static int dstDfSize = sdfFontSize * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM *
-                         sdfFontSize * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
-  maxSrcDfSize = glm::max(maxSrcDfSize, srcDfSize);
-  maxDstDfSize = glm::max(maxDstDfSize, dstDfSize);
+  static int srcDfSize = sourceFontSize_ * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM *
+                         sourceFontSize_ * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
+  static int dstDfSize = sdfFontSize_ * (ftFace->bbox.xMax - ftFace->bbox.xMin) / ftFace->units_per_EM *
+                         sdfFontSize_ * (ftFace->bbox.yMax - ftFace->bbox.yMin) / ftFace->units_per_EM;
+  maxSrcDfSize_ = glm::max(maxSrcDfSize_, srcDfSize);
+  maxDstDfSize_ = glm::max(maxDstDfSize_, dstDfSize);
 
   return SDFF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
 {
-  assert(initialized);
+  assert(initialized_);
 
-  if (!initialized)
+  if (!initialized_)
     return SDFF_NOT_INITIALIZED;
 
-  if (fonts.find(&font) == fonts.end())
+  if (fonts_.find(&font) == fonts_.end())
     return SDFF_FONT_NOT_EXISTS;
 
-  FontData & fontData = fonts[&font];
+  FontData & fontData = fonts_[&font];
   FT_Face & ftFace = fontData.ftFace;
   CharMap & chars = fontData.chars;
 
@@ -340,14 +324,14 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
 
     static DistanceFieldVector srcSdf;
     static DistanceFieldVector destSdf;
-    srcSdf.reserve(maxSrcDfSize);
-    destSdf.reserve(maxDstDfSize);
-    int srcFalloff = int(falloff * sourceFontSize);
+    srcSdf.reserve(maxSrcDfSize_);
+    destSdf.reserve(maxDstDfSize_);
+    int srcFalloff = int(falloff_ * sourceFontSize_);
     createSdf(ftFace->glyph->bitmap, srcFalloff, srcSdf);
 
     int srcWidth = ftFace->glyph->bitmap.width + 2 * srcFalloff;
     int srcHeight = ftFace->glyph->bitmap.rows + 2 * srcFalloff;
-    float fontScale = (float)sdfFontSize / sourceFontSize;
+    float fontScale = (float)sdfFontSize_ / sourceFontSize_;
     int destWidth = (int)glm::ceil(srcWidth * fontScale);
     int destHeight = (int)glm::ceil(srcHeight * fontScale);
     float horzScale = float(destWidth) / srcWidth;
@@ -447,7 +431,7 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
         assert(!ftError);
 
         if (kern.x)
-          font.kerning[charPair] = float(kern.x) / sourceFontSize;
+          font.kerning_[charPair] = float(kern.x) / sourceFontSize_;
 
         charPair = { charCode, charIt->first };
         kern = { 0, 0 };
@@ -455,23 +439,22 @@ SDFF_Error SDFF_Builder::addChar(SDFF_Font & font, SDFF_Char charCode)
         assert(!ftError);
 
         if (kern.x)
-          font.kerning[charPair] = float(kern.x) / sourceFontSize;
+          font.kerning_[charPair] = float(kern.x) / sourceFontSize_;
       }
     }
   }
-  SDFF_Glyph & glyph = font.glyphs[charCode];
-  glyph.bearingX = float(ftFace->glyph->metrics.horiBearingX) / 64 / sourceFontSize;
-  glyph.bearingY = float(ftFace->glyph->metrics.horiBearingY) / 64 / sourceFontSize;
-  glyph.advance = float(ftFace->glyph->metrics.horiAdvance) / 64 / sourceFontSize;
-  glyph.width = float(ftFace->glyph->metrics.width) / 64 / sourceFontSize;
-  glyph.height = float(ftFace->glyph->metrics.height) / 64 / sourceFontSize;
-  font.maxBearingY = glm::max(font.maxBearingY, glyph.bearingY);
-  font.maxHeight = glm::max(font.maxHeight, glyph.height);
+  SDFF_Glyph & glyph = font.glyphs_[charCode];
+  glyph.bearingX = float(ftFace->glyph->metrics.horiBearingX) / 64 / sourceFontSize_;
+  glyph.bearingY = float(ftFace->glyph->metrics.horiBearingY) / 64 / sourceFontSize_;
+  glyph.advance = float(ftFace->glyph->metrics.horiAdvance) / 64 / sourceFontSize_;
+  glyph.width = float(ftFace->glyph->metrics.width) / 64 / sourceFontSize_;
+  glyph.height = float(ftFace->glyph->metrics.height) / 64 / sourceFontSize_;
+  font.maxBearingY_ = glm::max(font.maxBearingY_, glyph.bearingY);
+  font.maxHeight_ = glm::max(font.maxHeight_, glyph.height);
 
   return SDFF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Error SDFF_Builder::addChars(SDFF_Font & font, SDFF_Char firstCharCode, SDFF_Char lastCharCode)
 {
@@ -486,7 +469,6 @@ SDFF_Error SDFF_Builder::addChars(SDFF_Font & font, SDFF_Char firstCharCode, SDF
   return SDFF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 SDFF_Error SDFF_Builder::addChars(SDFF_Font & font, const char * charString)
 {
@@ -494,7 +476,6 @@ SDFF_Error SDFF_Builder::addChars(SDFF_Font & font, const char * charString)
   return SDFF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 struct Rect
 {
@@ -528,9 +509,9 @@ struct std::hash<Rect>
 
 SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
 {
-  assert(initialized);
+  assert(initialized_);
 
-  if (!initialized)
+  if (!initialized_)
     return SDFF_NOT_INITIALIZED;
 
   typedef std::multimap<int, Rect> CharRectMap;
@@ -545,14 +526,14 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
   insertVector.reserve(1024);
 
   // add all our char rects into the array
-  for (FontMap::iterator fontIt = fonts.begin(); fontIt != fonts.end(); ++fontIt)
+  for (FontMap::iterator fontIt = fonts_.begin(); fontIt != fonts_.end(); ++fontIt)
   {
     CharMap & chars = fontIt->second.chars;
 
     for (CharMap::iterator charIt = chars.begin(); charIt != chars.end(); ++charIt)
     {
-      int width = charIt->second.width;
-      int height = charIt->second.height;
+      int width = charIt->second.width();
+      int height = charIt->second.height();
       Rect charRect = { 0, 0, width, height, fontIt->first, charIt->first };
       charRects.insert(std::make_pair(width * height, charRect));
     }
@@ -849,9 +830,9 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
   for (CharRectMap::iterator charRectIt = charRects.begin(); charRectIt != charRects.end(); ++charRectIt)
   {
     Rect & charRect = charRectIt->second;
-    FontMap::iterator fontIt = fonts.find(charRect.font);
+    FontMap::iterator fontIt = fonts_.find(charRect.font);
 
-    if (fontIt != fonts.end())
+    if (fontIt != fonts_.end())
     {
       CharMap::iterator charIt = fontIt->second.chars.find(charRect.charCode);
 
@@ -859,7 +840,7 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
       {
         SDFF_Font * font = fontIt->first;
         SDFF_Char charCode = charIt->first;
-        SDFF_Glyph & glyph = font->glyphs[charCode];
+        SDFF_Glyph & glyph = font->glyphs_[charCode];
         glyph.left = float(charRect.left) / width;
         glyph.right = float(charRect.right() + 1) / width;
         glyph.top = float(charRect.top) / height;
@@ -874,7 +855,6 @@ SDFF_Error SDFF_Builder::composeTexture(SDFF_Bitmap & bitmap, bool powerOfTwo)
   return SDFF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 unsigned int SDFF_Builder::firstPowerOfTwoGreaterThen(unsigned int value)
 {
@@ -889,32 +869,30 @@ unsigned int SDFF_Builder::firstPowerOfTwoGreaterThen(unsigned int value)
   return value;
 }
 
-//-------------------------------------------------------------------------------------------------
 
 void SDFF_Builder::copyBitmap(const SDFF_Bitmap & srcBitmap, SDFF_Bitmap & destBitmap, int xPos, int yPos) const
 {
   assert(xPos >= 0);
   assert(yPos >= 0);
-  assert(xPos + srcBitmap.width <= destBitmap.width);
-  assert(yPos + srcBitmap.height <= destBitmap.height);
+  assert(xPos + srcBitmap.width() <= destBitmap.width());
+  assert(yPos + srcBitmap.height() <= destBitmap.height());
 
   int srcIndex = 0;
-  int destIndex = yPos * destBitmap.width + xPos;
+  int destIndex = yPos * destBitmap.width() + xPos;
 
-  for (int y = 0; y < srcBitmap.height; y++)
+  for (int y = 0; y < srcBitmap.height(); y++)
   {
-    for (int x = 0; x < srcBitmap.width; x++)
+    for (int x = 0; x < srcBitmap.width(); x++)
     {
       destBitmap[destIndex] = destBitmap[destIndex] ? destBitmap[destIndex] : srcBitmap[srcIndex];
       srcIndex++;
       destIndex++;
     }
 
-    destIndex += destBitmap.width - srcBitmap.width;
+    destIndex += destBitmap.width() - srcBitmap.width();
   }
 }
 
-//-------------------------------------------------------------------------------------------------
 
 float SDFF_Builder::createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceFieldVector & result) const
 {
@@ -932,7 +910,6 @@ float SDFF_Builder::createSdf(const FT_Bitmap & ftBitmap, int falloff, DistanceF
   return glm::max(maxDist, maxDistInv - 1);
 }
 
-//-------------------------------------------------------------------------------------------------
 //  Based on "General algorithm for computing distance transforms in linear time"
 //  by A.MEIJSTER‚ J.B.T.M.ROERDINK† and W.H.HESSELINK†
 //  University of Groningen
