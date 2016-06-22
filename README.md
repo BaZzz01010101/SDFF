@@ -76,3 +76,5 @@ int main(int argc, char * argv[])
   return 1;
 }
 ```
+##Created font texture example
+[<img src="https://github.com/BaZzz01010101/SDFF/blob/085ca5e59d28a0d57e7fbb5a7f4aadd4e97c8f05/bin/font.png"/>](https://github.com/BaZzz01010101/SDFF/blob/085ca5e59d28a0d57e7fbb5a7f4aadd4e97c8f05/bin/font.png)
